@@ -1,0 +1,585 @@
+Big Data Group Project
+Benchmark model
+Step One: Download the data
+Let's import relevant packages:
+
+import numpy as np
+import pandas as pd
+Import the data:
+
+df = pd.read_excel('C:/Users/ELyons/Group Project/Input.xlsx')
+df = df.set_index('date')
+df
+cgncr	og	rgdpgr	infl	inv	cons	cb	save	eir	u	inact	twhwgr	prodgr
+date													
+1972-04-01	2.486782	-0.1	6.993290	-1.008889	22.824615	60.879670	1.092325	10.9	5.857047	4.4	24.8	0.506504	3.7
+1972-07-01	3.836564	1.2	0.043480	2.482894	21.346813	62.512751	-0.901054	6.4	5.231162	4.3	24.8	0.412324	1.8
+1972-10-01	6.604795	3.1	4.362183	5.317455	21.874646	61.490075	0.108275	5.7	5.863047	4.2	24.6	0.593133	2.3
+1973-01-01	-2.439896	6.0	0.803017	0.205900	21.670534	58.664693	-2.220407	9.2	5.730127	3.9	24.3	0.986506	7.3
+1973-04-01	6.177329	8.3	-0.766982	0.423129	23.725180	61.609384	-0.471239	11.4	5.954723	3.7	24.2	0.404222	5.2
+...	...	...	...	...	...	...	...	...	...	...	...	...	...
+2020-07-01	13.342683	-0.8	18.960858	-7.121388	15.474804	62.894384	-1.961090	12.4	1.347726	4.8	21.0	8.588667	5.7
+2020-10-01	12.736964	-0.8	4.907953	-0.570066	17.195295	61.851000	-5.221878	12.0	0.721711	5.2	21.1	5.588844	1.4
+2021-01-01	3.705312	0.4	-4.052871	3.279455	17.768897	57.195700	-1.560736	15.5	1.180677	4.9	21.4	-1.939744	3.0
+2021-04-01	12.941423	1.2	4.359814	-2.428987	17.844727	61.846932	-2.080583	13.4	2.379833	4.7	21.1	5.355640	4.9
+2021-07-01	4.238560	0.0	1.465925	0.919680	16.695427	63.614550	-4.192257	7.4	2.377453	4.3	21.1	2.526715	-4.5
+198 rows × 13 columns
+
+Step Two: Let's look at the data
+import seaborn as sns
+sns.set_theme(style="darkgrid")
+from pylab import rcParams
+rcParams['figure.figsize'] = 20,10
+​
+CGNCR = sns.lineplot(data=df, x = 'date', y="cgncr", color='r').set_title('CGNRC over time, £m - Quarterly')
+CGNCR
+Text(0.5, 1.0, 'CGNRC over time, £m - Quarterly')
+
+Step three: Let's set a benchmark model
+# Define the predictors
+X = pd.DataFrame(df['cgncr'])
+X['cgncr1'] = df['cgncr'].shift(1)
+X['cgncr2'] = df['cgncr'].shift(2)
+X['cgncr3'] = df['cgncr'].shift(3)
+X['cgncr4'] = df['cgncr'].shift(4)
+X = X[['cgncr1','cgncr2','cgncr3','cgncr4']]
+​
+# Drop NaN's from newly lagged variable
+X = X[7:]
+X
+​
+​
+cgncr1	cgncr2	cgncr3	cgncr4
+date				
+1974-01-01	3.997814	3.231284	6.177329	-2.439896
+1974-04-01	-2.979507	3.997814	3.231284	6.177329
+1974-07-01	4.902801	-2.979507	3.997814	3.231284
+1974-10-01	3.478988	4.902801	-2.979507	3.997814
+1975-01-01	8.873561	3.478988	4.902801	-2.979507
+...	...	...	...	...
+2020-07-01	35.624682	-0.379606	4.334060	1.818269
+2020-10-01	13.342683	35.624682	-0.379606	4.334060
+2021-01-01	12.736964	13.342683	35.624682	-0.379606
+2021-04-01	3.705312	12.736964	13.342683	35.624682
+2021-07-01	12.941423	3.705312	12.736964	13.342683
+191 rows × 4 columns
+
+#Define the target variable
+y = df[['cgncr']]
+y
+y=y[7:]
+y
+cgncr
+date	
+1974-01-01	-2.979507
+1974-04-01	4.902801
+1974-07-01	3.478988
+1974-10-01	8.873561
+1975-01-01	3.384839
+...	...
+2020-07-01	13.342683
+2020-10-01	12.736964
+2021-01-01	3.705312
+2021-04-01	12.941423
+2021-07-01	4.238560
+191 rows × 1 columns
+
+Step four: Lets train the model
+3
+from sklearn.model_selection import train_test_split 
+import statsmodels.api as sm
+​
+# Note issue with Train Test Split in that it randomises observations in the train and test sections. 
+# We need to keep the dates unbroken across train and test
+# Test on the last 10 years of the data (Post 2008FC, 2008 Q3 onwards)\n",
+​
+test_size = 53
+​
+X_train = X[:-test_size]
+X_test = X[-test_size:] 
+y_train = y[:-test_size]
+y_test = y[-test_size:]
+print(X_train)
+print(X_test)
+print(y_train)
+print(y_test)
+​
+              cgncr1    cgncr2    cgncr3    cgncr4
+date                                              
+1974-01-01  3.997814  3.231284  6.177329 -2.439896
+1974-04-01 -2.979507  3.997814  3.231284  6.177329
+1974-07-01  4.902801 -2.979507  3.997814  3.231284
+1974-10-01  3.478988  4.902801 -2.979507  3.997814
+1975-01-01  8.873561  3.478988  4.902801 -2.979507
+...              ...       ...       ...       ...
+2007-04-01 -1.934024  3.789846  1.975552  6.460840
+2007-07-01  4.653199 -1.934024  3.789846  1.975552
+2007-10-01  0.904073  4.653199 -1.934024  3.789846
+2008-01-01  5.216170  0.904073  4.653199 -1.934024
+2008-04-01 -2.112913  5.216170  0.904073  4.653199
+
+[138 rows x 4 columns]
+               cgncr1     cgncr2     cgncr3     cgncr4
+date                                                  
+2008-07-01   7.770711  -2.112913   5.216170   0.904073
+2008-10-01   9.458093   7.770711  -2.112913   5.216170
+2009-01-01  16.839697   9.458093   7.770711  -2.112913
+2009-04-01   7.262339  16.839697   9.458093   7.770711
+2009-07-01  14.096838   7.262339  16.839697   9.458093
+2009-10-01   9.544601  14.096838   7.262339  16.839697
+2010-01-01  19.673059   9.544601  14.096838   7.262339
+2010-04-01   7.521456  19.673059   9.544601  14.096838
+2010-07-01  12.614575   7.521456  19.673059   9.544601
+2010-10-01   6.656649  12.614575   7.521456  19.673059
+2011-01-01  10.604904   6.656649  12.614575   7.521456
+2011-04-01   3.200649  10.604904   6.656649  12.614575
+2011-07-01   9.774241   3.200649  10.604904   6.656649
+2011-10-01   6.415939   9.774241   3.200649  10.604904
+2012-01-01   7.204729   6.415939   9.774241   3.200649
+2012-04-01   4.755265   7.204729   6.415939   9.774241
+2012-07-01   6.350192   4.755265   7.204729   6.415939
+2012-10-01   6.073718   6.350192   4.755265   7.204729
+2013-01-01   8.689587   6.073718   6.350192   4.755265
+2013-04-01   1.070862   8.689587   6.073718   6.350192
+2013-07-01   6.501962   1.070862   8.689587   6.073718
+2013-10-01   3.208359   6.501962   1.070862   8.689587
+2014-01-01   5.445691   3.208359   6.501962   1.070862
+2014-04-01   2.188452   5.445691   3.208359   6.501962
+2014-07-01   7.479211   2.188452   5.445691   3.208359
+2014-10-01   4.348478   7.479211   2.188452   5.445691
+2015-01-01   5.129593   4.348478   7.479211   2.188452
+2015-04-01   1.043827   5.129593   4.348478   7.479211
+2015-07-01   5.894343   1.043827   5.129593   4.348478
+2015-10-01   3.733689   5.894343   1.043827   5.129593
+2016-01-01   3.607893   3.733689   5.894343   1.043827
+2016-04-01  -0.677409   3.607893   3.733689   5.894343
+2016-07-01   5.439613  -0.677409   3.607893   3.733689
+2016-10-01   5.714828   5.439613  -0.677409   3.607893
+2017-01-01   4.776309   5.714828   5.439613  -0.677409
+2017-04-01  -2.609338   4.776309   5.714828   5.439613
+2017-07-01   2.312982  -2.609338   4.776309   5.714828
+2017-10-01   2.484521   2.312982  -2.609338   4.776309
+2018-01-01   4.432332   2.484521   2.312982  -2.609338
+2018-04-01  -1.892157   4.432332   2.484521   2.312982
+2018-07-01   2.622173  -1.892157   4.432332   2.484521
+2018-10-01   0.984926   2.622173  -1.892157   4.432332
+2019-01-01   3.771878   0.984926   2.622173  -1.892157
+2019-04-01  -1.015848   3.771878   0.984926   2.622173
+2019-07-01   4.147895  -1.015848   3.771878   0.984926
+2019-10-01   1.818269   4.147895  -1.015848   3.771878
+2020-01-01   4.334060   1.818269   4.147895  -1.015848
+2020-04-01  -0.379606   4.334060   1.818269   4.147895
+2020-07-01  35.624682  -0.379606   4.334060   1.818269
+2020-10-01  13.342683  35.624682  -0.379606   4.334060
+2021-01-01  12.736964  13.342683  35.624682  -0.379606
+2021-04-01   3.705312  12.736964  13.342683  35.624682
+2021-07-01  12.941423   3.705312  12.736964  13.342683
+               cgncr
+date                
+1974-01-01 -2.979507
+1974-04-01  4.902801
+1974-07-01  3.478988
+1974-10-01  8.873561
+1975-01-01  3.384839
+...              ...
+2007-04-01  4.653199
+2007-07-01  0.904073
+2007-10-01  5.216170
+2008-01-01 -2.112913
+2008-04-01  7.770711
+
+[138 rows x 1 columns]
+                cgncr
+date                 
+2008-07-01   9.458093
+2008-10-01  16.839697
+2009-01-01   7.262339
+2009-04-01  14.096838
+2009-07-01   9.544601
+2009-10-01  19.673059
+2010-01-01   7.521456
+2010-04-01  12.614575
+2010-07-01   6.656649
+2010-10-01  10.604904
+2011-01-01   3.200649
+2011-04-01   9.774241
+2011-07-01   6.415939
+2011-10-01   7.204729
+2012-01-01   4.755265
+2012-04-01   6.350192
+2012-07-01   6.073718
+2012-10-01   8.689587
+2013-01-01   1.070862
+2013-04-01   6.501962
+2013-07-01   3.208359
+2013-10-01   5.445691
+2014-01-01   2.188452
+2014-04-01   7.479211
+2014-07-01   4.348478
+2014-10-01   5.129593
+2015-01-01   1.043827
+2015-04-01   5.894343
+2015-07-01   3.733689
+2015-10-01   3.607893
+2016-01-01  -0.677409
+2016-04-01   5.439613
+2016-07-01   5.714828
+2016-10-01   4.776309
+2017-01-01  -2.609338
+2017-04-01   2.312982
+2017-07-01   2.484521
+2017-10-01   4.432332
+2018-01-01  -1.892157
+2018-04-01   2.622173
+2018-07-01   0.984926
+2018-10-01   3.771878
+2019-01-01  -1.015848
+2019-04-01   4.147895
+2019-07-01   1.818269
+2019-10-01   4.334060
+2020-01-01  -0.379606
+2020-04-01  35.624682
+2020-07-01  13.342683
+2020-10-01  12.736964
+2021-01-01   3.705312
+2021-04-01  12.941423
+2021-07-01   4.238560
+X = sm.add_constant(X)
+
+model = sm.OLS(y_train, X_train)
+results = model.fit()
+
+results.summary()
+X = sm.add_constant(X)
+​
+model = sm.OLS(y_train, X_train)
+results = model.fit()
+​
+results.summary()
+OLS Regression Results
+Dep. Variable:	cgncr	R-squared (uncentered):	0.724
+Model:	OLS	Adj. R-squared (uncentered):	0.715
+Method:	Least Squares	F-statistic:	87.69
+Date:	Wed, 26 Jan 2022	Prob (F-statistic):	1.90e-36
+Time:	21:14:12	Log-Likelihood:	-303.18
+No. Observations:	138	AIC:	614.4
+Df Residuals:	134	BIC:	626.1
+Df Model:	4		
+Covariance Type:	nonrobust		
+coef	std err	t	P>|t|	[0.025	0.975]
+cgncr1	0.1789	0.065	2.750	0.007	0.050	0.308
+cgncr2	0.2106	0.066	3.169	0.002	0.079	0.342
+cgncr3	-0.1253	0.067	-1.879	0.062	-0.257	0.007
+cgncr4	0.6689	0.064	10.376	0.000	0.541	0.796
+Omnibus:	2.272	Durbin-Watson:	1.415
+Prob(Omnibus):	0.321	Jarque-Bera (JB):	1.880
+Skew:	-0.276	Prob(JB):	0.391
+Kurtosis:	3.148	Cond. No.	3.06
+
+
+Notes:
+[1] R² is computed without centering (uncentered) since the model does not contain a constant.
+[2] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+The R squared shows us what proportion/fraction of variance in y is shared with variance in x. In this case, this model explains 72.4% of the variation in data. The predictors used in this regression are simply the lagged CGNCR of the previous quarter.
+
+Our std error is an estimate of the standard deviation of the coefficient, a measurement of the amount of variation in the coefficient throughout its data points. This is relatively small across the period.
+
+CGNCR2 and CGNCR4 predictor is significant at the 95% or 99%.
+
+Main model: Incorporating all predictors from df
+list(df)
+['cgncr',
+ 'og',
+ 'rgdpgr',
+ 'infl',
+ 'inv',
+ 'cons',
+ 'cb',
+ 'save',
+ 'eir',
+ 'u',
+ 'inact',
+ 'twhwgr',
+ 'prodgr']
+Let's lag all predictors:
+
+df['cgncr1'] = df['cgncr'].shift(1)
+df['cgncr2'] = df['cgncr'].shift(2)
+df['cgncr3'] = df['cgncr'].shift(3)
+df['cgncr4'] = df['cgncr'].shift(4)
+    
+# Output gap. 4 lags
+df['og1'] = df['og'].shift(1)
+df['og2'] = df['og'].shift(2)
+df['og3'] = df['og'].shift(3)
+df['og4'] = df['og'].shift(4)
+​
+# Real GDP growth. 4 lags.
+df['rgdpgr1'] = df['rgdpgr'].shift(1)
+df['rgdpgr2'] = df['rgdpgr'].shift(2)
+df['rgdpgr3'] = df['rgdpgr'].shift(3)
+df['rgdpgr4'] = df['rgdpgr'].shift(4)
+​
+# GDP deflator growth. 6 lags
+df['infl1'] = df['infl'].shift(1)
+df['infl2'] = df['infl'].shift(2)
+df['infl3'] = df['infl'].shift(3)
+df['infl4'] = df['infl'].shift(4)
+df['infl5'] = df['infl'].shift(5)
+df['infl6'] = df['infl'].shift(6)
+   
+# Investment. 4 lags
+df['inv1'] = df['inv'].shift(1)
+df['inv2'] = df['inv'].shift(2)
+df['inv3'] = df['inv'].shift(3)
+df['inv4'] = df['inv'].shift(4)
+​
+# Consumption. 4 lags
+df['cons1'] = df['cons'].shift(1)
+df['cons2'] = df['cons'].shift(2)
+df['cons3'] = df['cons'].shift(3)
+df['cons4'] = df['cons'].shift(4)
+  
+# Current Balance. 4 lags
+df['cb1'] = df['cb'].shift(1)
+df['cb2'] = df['cb'].shift(2)
+df['cb3'] = df['cb'].shift(3)
+df['cb4'] = df['cb'].shift(4)
+    
+# Savings Ratio. 4 lags
+df['save1'] = df['save'].shift(1)
+df['save2'] = df['save'].shift(2)
+df['save3'] = df['save'].shift(3)
+df['save4'] = df['save'].shift(4)
+  
+# Effective Interest Rate. 4 lags.\n",
+df['eir1'] = df['eir'].shift(1)
+df['eir2'] = df['eir'].shift(2)
+df['eir3'] = df['eir'].shift(3)
+df['eir4'] = df['eir'].shift(4)
+    
+# Unemployment Rate. 4 lags
+df['u1'] = df['u'].shift(1)
+df['u2'] = df['u'].shift(2)
+df['u3'] = df['u'].shift(3)
+df['u4'] = df['u'].shift(4)
+    
+# Inactivity. 4 lags
+df['inact1'] = df['inact'].shift(1)
+df['inact2'] = df['inact'].shift(2)
+df['inact3'] = df['inact'].shift(3)
+df['inact4'] = df['inact'].shift(4)
+  
+# Growth in total working hours worked. 4 lags
+df['twhwgr1'] = df['twhwgr'].shift(1)
+df['twhwgr2'] = df['twhwgr'].shift(2)
+df['twhwgr3'] = df['twhwgr'].shift(3)
+df['twhwgr4'] = df['twhwgr'].shift(4)
+​
+# Productivity growth. 1 lag.\n",
+df['prodgr1'] = df['prodgr'].shift(1)
+df.columns
+df.columns
+Index(['cgncr', 'og', 'rgdpgr', 'infl', 'inv', 'cons', 'cb', 'save', 'eir',
+       'u', 'inact', 'twhwgr', 'prodgr', 'cgncr1', 'cgncr2', 'cgncr3',
+       'cgncr4', 'og1', 'og2', 'og3', 'og4', 'rgdpgr1', 'rgdpgr2', 'rgdpgr3',
+       'rgdpgr4', 'infl1', 'infl2', 'infl3', 'infl4', 'infl5', 'infl6', 'inv1',
+       'inv2', 'inv3', 'inv4', 'cons1', 'cons2', 'cons3', 'cons4', 'cb1',
+       'cb2', 'cb3', 'cb4', 'save1', 'save2', 'save3', 'save4', 'eir1', 'eir2',
+       'eir3', 'eir4', 'u1', 'u2', 'u3', 'u4', 'inact1', 'inact2', 'inact3',
+       'inact4', 'twhwgr1', 'twhwgr2', 'twhwgr3', 'twhwgr4', 'prodgr1'],
+      dtype='object')
+Step two: create a vector of predictors
+X = df[['cgncr1', 'cgncr2', 'cgncr3',
+       'cgncr4', 'og1', 'og2', 'og3', 'og4', 'rgdpgr1', 'rgdpgr2', 'rgdpgr3',
+       'rgdpgr4', 'infl1', 'infl2', 'infl3', 'infl4', 'infl5', 'infl6', 'inv1',
+       'inv2', 'inv3', 'inv4', 'cons1', 'cons2', 'cons3', 'cons4', 'cb1',
+       'cb2', 'cb3', 'cb4', 'save1', 'save2', 'save3', 'save4', 'eir1', 'eir2',
+       'eir3', 'eir4', 'u1', 'u2', 'u3', 'u4', 'inact1', 'inact2', 'inact3',
+       'inact4', 'twhwgr1', 'twhwgr2', 'twhwgr3', 'twhwgr4', 'prodgr1']]
+# As before, remove NaNs from lagged variables.
+​
+X = X[6:]
+X
+cgncr1	cgncr2	cgncr3	cgncr4	og1	og2	og3	og4	rgdpgr1	rgdpgr2	...	u4	inact1	inact2	inact3	inact4	twhwgr1	twhwgr2	twhwgr3	twhwgr4	prodgr1
+date																					
+1973-10-01	3.231284	6.177329	-2.439896	6.604795	7.1	8.3	6.0	3.1	1.576592	-0.766982	...	4.2	24.4	24.2	24.3	24.6	-0.055916	0.404222	0.986506	0.593133	3.9
+1974-01-01	3.997814	3.231284	6.177329	-2.439896	6.1	7.1	8.3	6.0	1.803829	1.576592	...	3.9	24.4	24.4	24.2	24.3	0.022379	-0.055916	0.404222	0.986506	2.3
+1974-04-01	-2.979507	3.997814	3.231284	6.177329	4.6	6.1	7.1	8.3	-9.868893	1.803829	...	3.7	24.4	24.4	24.4	24.2	-0.257299	0.022379	-0.055916	0.404222	-3.9
+1974-07-01	4.902801	-2.979507	3.997814	3.231284	5.6	4.6	6.1	7.1	5.953953	-9.868893	...	3.6	24.3	24.4	24.4	24.4	-0.224316	-0.257299	0.022379	-0.055916	-2.2
+1974-10-01	3.478988	4.902801	-2.979507	3.997814	4.1	5.6	4.6	6.1	2.101023	5.953953	...	3.4	24.1	24.3	24.4	24.4	-0.168615	-0.224316	-0.257299	0.022379	-0.1
+...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...	...
+2020-07-01	35.624682	-0.379606	4.334060	1.818269	0.0	0.0	0.0	0.1	-20.232835	-5.424406	...	3.8	20.9	20.4	20.5	20.8	-18.075208	-1.742691	-0.237507	0.000000	-2.1
+2020-10-01	13.342683	35.624682	-0.379606	4.334060	-0.8	0.0	0.0	0.0	18.960858	-20.232835	...	3.8	21.0	20.9	20.4	20.5	8.588667	-18.075208	-1.742691	-0.237507	5.7
+2021-01-01	12.736964	13.342683	35.624682	-0.379606	-0.8	-0.8	0.0	0.0	4.907953	18.960858	...	4.0	21.1	21.0	20.9	20.4	5.588844	8.588667	-18.075208	-1.742691	1.4
+2021-04-01	3.705312	12.736964	13.342683	35.624682	0.4	-0.8	-0.8	0.0	-4.052871	4.907953	...	4.1	21.4	21.1	21.0	20.9	-1.939744	5.588844	8.588667	-18.075208	3.0
+2021-07-01	12.941423	3.705312	12.736964	13.342683	1.2	0.4	-0.8	-0.8	4.359814	-4.052871	...	4.8	21.1	21.4	21.1	21.0	5.355640	-1.939744	5.588844	8.588667	4.9
+192 rows × 51 columns
+
+Step three: define the predictor
+y
+y = df[['cgncr']]
+​
+y = y[6:]
+y
+cgncr
+date	
+1973-10-01	3.997814
+1974-01-01	-2.979507
+1974-04-01	4.902801
+1974-07-01	3.478988
+1974-10-01	8.873561
+...	...
+2020-07-01	13.342683
+2020-10-01	12.736964
+2021-01-01	3.705312
+2021-04-01	12.941423
+2021-07-01	4.238560
+192 rows × 1 columns
+
+)
+# To ensure data is clean:
+print(X.isna().sum())
+print(y.isna().sum())
+cgncr1     0
+cgncr2     0
+cgncr3     0
+cgncr4     0
+og1        0
+og2        0
+og3        0
+og4        0
+rgdpgr1    0
+rgdpgr2    0
+rgdpgr3    0
+rgdpgr4    0
+infl1      0
+infl2      0
+infl3      0
+infl4      0
+infl5      0
+infl6      0
+inv1       0
+inv2       0
+inv3       0
+inv4       0
+cons1      0
+cons2      0
+cons3      0
+cons4      0
+cb1        0
+cb2        0
+cb3        0
+cb4        0
+save1      0
+save2      0
+save3      0
+save4      0
+eir1       0
+eir2       0
+eir3       0
+eir4       0
+u1         0
+u2         0
+u3         0
+u4         0
+inact1     0
+inact2     0
+inact3     0
+inact4     0
+twhwgr1    0
+twhwgr2    0
+twhwgr3    0
+twhwgr4    0
+prodgr1    0
+dtype: int64
+cgncr    0
+dtype: int64
+# As before, test the final ten years of data post 2008FC, 2008 Q3.
+​
+test_size = 10
+​
+X_train = X[:-test_size]
+X_test = X[-test_size:] 
+y_train = y[:-test_size]
+y_test = y[-test_size:]
+X = sm.add_constant(X)
+​
+main_model = sm.OLS(y_train, X_train)
+results = main_model.fit()
+​
+results.summary()
+OLS Regression Results
+Dep. Variable:	cgncr	R-squared (uncentered):	0.881
+Model:	OLS	Adj. R-squared (uncentered):	0.835
+Method:	Least Squares	F-statistic:	19.05
+Date:	Wed, 26 Jan 2022	Prob (F-statistic):	8.66e-41
+Time:	21:14:28	Log-Likelihood:	-358.99
+No. Observations:	182	AIC:	820.0
+Df Residuals:	131	BIC:	983.4
+Df Model:	51		
+Covariance Type:	nonrobust		
+coef	std err	t	P>|t|	[0.025	0.975]
+cgncr1	0.3428	0.085	4.042	0.000	0.175	0.511
+cgncr2	0.1611	0.091	1.772	0.079	-0.019	0.341
+cgncr3	-0.1723	0.091	-1.903	0.059	-0.351	0.007
+cgncr4	0.3917	0.083	4.713	0.000	0.227	0.556
+og1	-0.2278	0.483	-0.471	0.638	-1.184	0.729
+og2	0.1162	0.752	0.155	0.877	-1.371	1.603
+og3	-0.6888	0.722	-0.954	0.342	-2.116	0.739
+og4	0.9242	0.467	1.978	0.050	-9.06e-05	1.848
+rgdpgr1	0.0652	0.250	0.261	0.795	-0.430	0.560
+rgdpgr2	0.4455	0.278	1.604	0.111	-0.104	0.995
+rgdpgr3	0.2732	0.302	0.906	0.367	-0.324	0.870
+rgdpgr4	0.4363	0.249	1.751	0.082	-0.057	0.929
+infl1	-0.3713	0.197	-1.889	0.061	-0.760	0.018
+infl2	0.0485	0.202	0.240	0.811	-0.351	0.448
+infl3	-0.2576	0.198	-1.301	0.195	-0.649	0.134
+infl4	0.1009	0.174	0.579	0.563	-0.244	0.446
+infl5	-0.0606	0.153	-0.396	0.692	-0.363	0.242
+infl6	-0.1786	0.143	-1.252	0.213	-0.461	0.104
+inv1	0.3445	0.295	1.167	0.245	-0.240	0.929
+inv2	-0.2913	0.349	-0.835	0.405	-0.981	0.399
+inv3	-0.0610	0.358	-0.170	0.865	-0.770	0.648
+inv4	0.1488	0.305	0.489	0.626	-0.454	0.751
+cons1	-0.6312	0.265	-2.381	0.019	-1.156	-0.107
+cons2	0.1209	0.276	0.437	0.662	-0.426	0.668
+cons3	-0.4612	0.278	-1.659	0.099	-1.011	0.089
+cons4	0.6235	0.266	2.348	0.020	0.098	1.149
+cb1	0.1644	0.189	0.869	0.386	-0.210	0.539
+cb2	-0.3043	0.202	-1.504	0.135	-0.704	0.096
+cb3	-0.1095	0.202	-0.543	0.588	-0.509	0.290
+cb4	-0.0373	0.188	-0.199	0.843	-0.409	0.334
+save1	-0.0616	0.100	-0.619	0.537	-0.259	0.135
+save2	0.0502	0.107	0.471	0.638	-0.161	0.261
+save3	-0.1487	0.111	-1.343	0.182	-0.368	0.070
+save4	0.1902	0.101	1.891	0.061	-0.009	0.389
+eir1	-0.2426	0.361	-0.673	0.502	-0.956	0.471
+eir2	0.0327	0.382	0.086	0.932	-0.723	0.788
+eir3	0.0375	0.371	0.101	0.920	-0.697	0.772
+eir4	-0.1042	0.345	-0.302	0.763	-0.787	0.579
+u1	0.2877	1.385	0.208	0.836	-2.453	3.028
+u2	0.4027	2.057	0.196	0.845	-3.666	4.471
+u3	-0.0659	2.049	-0.032	0.974	-4.120	3.988
+u4	-0.5817	1.399	-0.416	0.678	-3.349	2.186
+inact1	1.0967	1.268	0.865	0.388	-1.411	3.604
+inact2	0.3265	1.742	0.187	0.852	-3.120	3.773
+inact3	0.6217	1.715	0.362	0.718	-2.771	4.015
+inact4	-1.0829	1.305	-0.830	0.408	-3.664	1.498
+twhwgr1	-0.8710	0.502	-1.737	0.085	-1.863	0.121
+twhwgr2	-0.0657	0.545	-0.121	0.904	-1.143	1.012
+twhwgr3	-0.2077	0.542	-0.384	0.702	-1.279	0.864
+twhwgr4	-0.7089	0.459	-1.545	0.125	-1.617	0.199
+prodgr1	-0.5023	0.258	-1.949	0.053	-1.012	0.008
+Omnibus:	10.372	Durbin-Watson:	1.834
+Prob(Omnibus):	0.006	Jarque-Bera (JB):	18.940
+Skew:	0.231	Prob(JB):	7.71e-05
+Kurtosis:	4.511	Cond. No.	2.62e+03
+
+
+Notes:
+[1] R² is computed without centering (uncentered) since the model does not contain a constant.
+[2] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+[3] The condition number is large, 2.62e+03. This might indicate that there are
+strong multicollinearity or other numerical problems.
+​
